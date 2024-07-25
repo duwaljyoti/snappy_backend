@@ -1,0 +1,41 @@
+version: '3.9'
+
+volumes:
+  dbdata:
+
+networks:
+  snappybackend:
+    driver: bridge
+
+services:
+  api:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/snappybackend
+    env_file: .env
+    command: >
+      sh -c "python manage.py wait_for_db && python manage.py runserver 0.0.0.0:8000"
+    container_name: snappy_api
+    depends_on:
+      - db
+    networks:
+      - snappybackend
+
+  db:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    container_name: snappy_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data/
+    networks:
+      - snappybackend
