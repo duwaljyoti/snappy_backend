@@ -38,11 +38,14 @@ DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
 ]
 
 LOCAL_APPS = [
-    'apps.testapp'
+    "apps.testapp",
+    "apps.user",
 ]
+
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
 
@@ -90,10 +93,6 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT'),
     }
 }
-
-LOCAL_APPS = [
-    "apps.testapp",
-]
 
 # INSTALLED_APPS = LOCAL_APPS
 
