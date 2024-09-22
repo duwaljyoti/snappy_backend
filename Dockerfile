@@ -36,6 +36,7 @@ WORKDIR /snappybackend
 
 # Copy requirements and install dependencies
 COPY requirements.txt /snappybackend/
+RUN pip install config
 RUN pip install --no-cache-dir -r /snappybackend/requirements.txt
 
 # Copy the rest of the application
