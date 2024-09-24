@@ -3,7 +3,7 @@ name: Deploy on Push to Main
 on:
   push:
     branches:
-      - main  # Trigger the workflow when there is a push to the 'main'
+      - main  # Trigger the workflow when there is a push to the 'main' test change
 
 jobs:
   deploy:
