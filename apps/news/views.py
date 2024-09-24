@@ -83,6 +83,6 @@ def get_whole_news(url):
     print(full_news_text)
 
 
-def check_heath():
+def check_heath(request):
     response = {"working": True}
     return json.dumps(response)
