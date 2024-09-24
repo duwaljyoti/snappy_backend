@@ -84,5 +84,5 @@ def get_whole_news(url):
 
 
 def check_heath(request):
-    response = {"working": True}
-    return json.dumps(response)
+    return JsonResponse({'working': True})
+
