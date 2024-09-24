@@ -19,5 +19,6 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             cd /var/www/snappy_backend/
+            python manage.py migrate
             sudo git pull origin main
           EOF

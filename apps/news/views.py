@@ -84,5 +84,5 @@ def get_whole_news(url):
 
 
 def check_heath(request):
-    return JsonResponse({'working': True})
+    return JsonResponse({'working': True, 'last_update_time': datetime.now()})
 
