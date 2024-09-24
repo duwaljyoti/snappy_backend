@@ -20,5 +20,5 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             cd /var/www/snappy_backend/
             sudo git pull origin main
-            sudo docker-compose up --build -d  # Build and run the containers in detached mode
+             sudo docker system prune -a --volumes -f && sudo docker-compose up --build -d  # Build and run the containers in detached mode
           EOF
