@@ -2,13 +2,14 @@ from django.http import JsonResponse
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+import json
 
 def my_view(request):
     online_portals = [
         'https://www.onlinekhabar.com/',
     ]
     # URL of the website
-    url = 'https://ekantipur.com/'
+    url = 'ekantipur.com/'
 
     try:
         # Send a GET request to the website
@@ -80,3 +81,8 @@ def get_whole_news(url):
     full_news_text = ' '.join(news_text)
 
     print(full_news_text)
+
+
+def check_heath():
+    response = {"working": True}
+    return json.dumps(response)
