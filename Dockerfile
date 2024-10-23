@@ -1,30 +1,35 @@
-FROM python:3.9.16-alpine
+FROM python:3.9-slim-buster
 
 ENV PYTHONUNBUFFERED=1
 
-RUN apk --no-cache add \
-    ca-certificates gcc linux-headers musl-dev \
-    libffi-dev jpeg-dev zlib-dev libc-dev \
-    postgresql-dev \
-    libmagic \
-    libstdc++ \
-    libx11 \
-    libxrender \
-    libxext \
-    libssl1.1 \
+RUN apt-get update && apt-get install -y \
     ca-certificates \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libc-dev \
+    libpq-dev \
+    file \
+    libstdc++6 \
+    libx11-6 \
+    libxrender1 \
+    libxext6 \
+    libssl1.1 \
     fontconfig \
-    freetype \
-    ttf-droid \
-    ttf-freefont \
-    ttf-liberation \
-    build-base \
-    openssl-dev \
+    freetype2-demos \
+    fonts-droid-fallback \
+    fonts-freefont-ttf \
+    fonts-liberation \
+    build-essential \
+    openssl \
     g++ \
-    vim
+    vim \
+    && rm -rf /var/lib/apt/lists/*
 
 
-RUN adduser -D snappybackend \
+RUN adduser --disabled-password --gecos "" snappybackend \
     && mkdir /snappybackend \
     && chown -R snappybackend:snappybackend /snappybackend/
 
