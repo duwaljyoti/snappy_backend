@@ -27,7 +27,7 @@ services:
       - snappybackend
 
   db:
-    image: postgres:alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_DB=snappy
       - POSTGRES_USER=postgres
