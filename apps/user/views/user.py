@@ -35,5 +35,4 @@ class SignInView(APIView):
                 'refresh': str(refresh),
             }, status=status.HTTP_200_OK)
 
-            # If authentication fails, return an error response
         return Response({'error': 'Invalid username or password'}, status=status.HTTP_401_UNAUTHORIZED)
