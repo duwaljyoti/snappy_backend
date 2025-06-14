@@ -44,3 +44,4 @@ COPY ./ /snappybackend/
 
 # Command to run the Django application
 # CMD ["sh", "-c", "python manage.py wait_for_db && python manage.py migrate && python manage.py collectstatic -i admin -i rest_framework -i drf-yasg --noinput && python manage.py runserver 0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8300"]

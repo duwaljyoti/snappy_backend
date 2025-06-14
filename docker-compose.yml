@@ -1,4 +1,4 @@
-version: '3.9'
+#version: '3.9'
 
 volumes:
   dbdata:
@@ -14,12 +14,12 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8100:8300"
     volumes:
       - .:/snappybackend
     env_file: .env
     command: >
-      sh -c "python manage.py wait_for_db && python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py wait_for_db && python manage.py runserver 0.0.0.0:8300"
     container_name: snappy_api
     depends_on:
       - db
