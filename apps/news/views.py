@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import json
 from urllib.parse import urljoin
+import math
 
 BASE_URL = 'https://ekantipur.com/'  # Define the base URL globally
 
@@ -255,4 +256,18 @@ def get_whole_news(url):
 
 def check_heath(request):
     return JsonResponse({'working': True, 'last_update_time': datetime.now()})
+
+
+def cpu_burn():
+    # Much heavier: calculate prime numbers up to 500k
+    count = 0
+    for num in range(100_000, 500_000):
+        prime = True
+        for i in range(2, int(math.sqrt(num)) + 1):
+            if num % i == 0:
+                prime = False
+                break
+        if prime:
+            count += 1
+    return {"message": "done", "primes_found": count}
 
