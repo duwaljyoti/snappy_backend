@@ -258,7 +258,7 @@ def check_heath(request):
     return JsonResponse({'working': True, 'last_update_time': datetime.now()})
 
 
-def cpu_burn():
+def cpu_burn(request):
     # Much heavier: calculate prime numbers up to 500k
     count = 0
     for num in range(100_000, 500_000):
