@@ -7,6 +7,7 @@ from datetime import datetime
 import json
 from urllib.parse import urljoin
 import math
+from django.views.decorators.http import require_GET
 
 BASE_URL = 'https://ekantipur.com/'  # Define the base URL globally
 
@@ -259,15 +260,29 @@ def check_heath(request):
 
 
 def cpu_burn(request):
-    # Much heavier: calculate prime numbers up to 500k
     count = 0
-    for num in range(100_000, 500_000):
+    # Search primes in a larger range (1M to 2M)
+    for num in range(1_000_000, 2_000_000):
         prime = True
-        for i in range(2, int(math.sqrt(num)) + 1):
+        limit = int(math.sqrt(num)) + 1
+        for i in range(2, limit):
             if num % i == 0:
                 prime = False
                 break
         if prime:
             count += 1
-    return {"message": "done", "primes_found": count}
+
+    # Add an extra CPU-intensive step (matrix multiplication)
+    size = 300
+    matrix_a = [[i * j for j in range(size)] for i in range(size)]
+    matrix_b = [[i + j for j in range(size)] for i in range(size)]
+    result = [[sum(a * b for a, b in zip(row, col))
+               for col in zip(*matrix_b)]
+              for row in matrix_a]
+
+    return JsonResponse({
+        "message": "done",
+        "primes_found": count,
+        "matrix_checksum": sum(sum(row) for row in result)  # prevents optimization
+    })
 
