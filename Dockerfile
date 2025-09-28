@@ -37,7 +37,7 @@ FROM python:3.9.16-alpine
 
 ENV PYTHONUNBUFFERED=1
 
-# Install only runtime libraries
+# Install only runtime libraries (+ curl for container health checks)
 RUN apk --no-cache add \
     libffi \
     jpeg \
@@ -54,7 +54,8 @@ RUN apk --no-cache add \
     ttf-droid \
     ttf-freefont \
     ttf-liberation \
-    libpq  # Needed for psycopg2 binary runtime
+    libpq \
+    curl
 
 # Create user and app directory
 RUN adduser -D snappybackend \
