@@ -1,0 +1,33 @@
+version: 0.2
+
+env:
+  variables:
+    IMAGE_NAME: "coderjay/snappy_api"   # <-- change
+    CONTAINER_NAME: "jyoti-test-q3-goal-task-def-container-api"         # <-- must match ECS task def container name
+  secrets-manager:
+    DOCKERHUB_USERNAME: "dockerhub/your-app:coderjay"
+    DOCKERHUB_PASSWORD: "dockerhub/your-app:test_password"
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to DockerHub...
+      - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      - GIT_SHORT_SHA=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-7)
+      - TAG=${GIT_SHORT_SHA:-latest}
+  build:
+    commands:
+      - echo Building $IMAGE_NAME:$TAG ...
+      - docker build -t $IMAGE_NAME:$TAG .
+      - docker tag $IMAGE_NAME:$TAG $IMAGE_NAME:latest
+  post_build:
+    commands:
+      - echo Pushing images...
+      - docker push $IMAGE_NAME:$TAG
+      - docker push $IMAGE_NAME:latest
+      # Tell ECS which image to deploy
+      - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$IMAGE_NAME:$TAG" > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
