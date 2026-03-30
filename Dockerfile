@@ -5,30 +5,21 @@ FROM python:3.9.16-alpine AS builder
 
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies required to build Python packages
+# Install build dependencies
 RUN apk --no-cache add \
-    ca-certificates gcc linux-headers musl-dev \
-    libffi-dev jpeg-dev zlib-dev libc-dev \
-    postgresql-dev \
-    build-base \
-    openssl-dev \
-    g++ \
-    libmagic
+    gcc python3-dev musl-dev postgresql-dev build-base libffi-dev
 
-# Create user and app directory
-RUN adduser -D snappybackend \
-    && mkdir /snappybackend \
-    && chown -R snappybackend:snappybackend /snappybackend/
+WORKDIR /app
 
-USER snappybackend
-WORKDIR /snappybackend
+# Create a virtual environment and install dependencies there
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy only requirements and install dependencies
-COPY --chown=snappybackend requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
-COPY --chown=snappybackend . .
+COPY . .
 
 # =========================
 # Stage 2: Runtime Layer
@@ -36,41 +27,23 @@ COPY --chown=snappybackend . .
 FROM python:3.9.16-alpine
 
 ENV PYTHONUNBUFFERED=1
+# CRITICAL: This ensures the system finds 'celery' and 'python' in our venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install only runtime libraries (+ curl for container health checks)
-RUN apk --no-cache add \
-    libffi \
-    jpeg \
-    zlib \
-    libmagic \
-    libstdc++ \
-    libx11 \
-    libxrender \
-    libxext \
-    libssl1.1 \
-    ca-certificates \
-    fontconfig \
-    freetype \
-    ttf-droid \
-    ttf-freefont \
-    ttf-liberation \
-    libpq \
-    curl
+# Runtime dependencies
+RUN apk --no-cache add libpq openssl tzdata curl
 
-# Create user and app directory
-RUN adduser -D snappybackend \
-    && mkdir /snappybackend \
-    && chown -R snappybackend:snappybackend /snappybackend/
+# Set up the user
+RUN adduser -D snappybackend
+WORKDIR /home/snappybackend/app
+
+# 1. Copy the virtual environment from the builder
+COPY --from=builder /opt/venv /opt/venv
+
+# 2. Copy the app code and ensure the user owns it
+COPY --from=builder --chown=snappybackend:snappybackend /app .
 
 USER snappybackend
-ENV HOME /home/snappybackend
-ENV PATH "$PATH:/home/snappybackend/.local/bin"
 
-WORKDIR /snappybackend
-
-# Copy from builder
-COPY --from=builder /home/snappybackend/.local /home/snappybackend/.local
-COPY --from=builder /snappybackend /snappybackend
-
-# Final run command
+# Final run command (Overridden by docker-compose for worker/beat)
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8300"]

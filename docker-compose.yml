@@ -1,4 +1,4 @@
-#version: '3.9'
+version: '3.9'
 
 volumes:
   redis_data:
@@ -8,48 +8,64 @@ networks:
     driver: bridge
 
 services:
-  api:
+  # --- BROKER ---
+  redis:
+    image: redis:7.4.1
+    networks:
+      - snappybackend
     restart: always
-    build:
-      context: .
-      dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # --- APPLICATION LAYER ---
+  api:
+    build: .
+    restart: always
     ports:
       - "8100:8300"
     volumes:
       - .:/snappybackend
     env_file: .env
-#    command: >
-#      sh -c "python manage.py wait_for_db && python manage.py runserver 0.0.0.0:8300"
-    command: >
-      sh -c "python manage.py runserver 0.0.0.0:8300"
-    container_name: snappy_api
-#    depends_on:
-#      - db
+    command: python manage.py runserver 0.0.0.0:8300
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - snappybackend
 
-#  db:
-#    image: postgres:16-alpine
-#    environment:
-#      POSTGRES_DB: ${POSTGRES_DB:-snappy}
-#      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
-#    container_name: snappy_db
-#    ports:
-#      - "5433:5432"
-#    volumes:
-#      - dbdata:/var/lib/postgresql/data/
+  worker:
+    build: .
+    # CHANGE 'snappy' TO 'snappy_backend'
+    command: celery -A snappy_backend worker --loglevel=info
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - snappybackend
+
+#  beat:
+#    build: .
+#    # CHANGE 'snappy' TO 'snappy_backend'
+#    command: celery -A snappy_backend beat --loglevel=info
+#    env_file: .env
+#    depends_on:
+#      redis:
+#        condition: service_healthy
 #    networks:
 #      - snappybackend
 
-  redis:
-    image: redis:7.4.1
-    container_name: snappy_redis
-    command: redis-server
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis_data:/data
+
+  beat:
+    build: .
+    # ADDED: --schedule /tmp/celerybeat-schedule
+    command: celery -A snappy_backend beat --loglevel=info --schedule /tmp/celerybeat-schedule
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - snappybackend
-    restart: always

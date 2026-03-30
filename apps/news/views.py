@@ -286,3 +286,30 @@ def cpu_burn(request):
         "matrix_checksum": sum(sum(row) for row in result)  # prevents optimization
     })
 
+
+
+import time
+import hashlib
+
+def stress_test_view(request):
+    """
+    Intentionally consumes 100% CPU for a set duration.
+    Warning: Use only for testing infrastructure!
+    """
+    # Duration in seconds to keep the CPU busy
+    duration = 30
+    start_time = time.time()
+
+    print(f"Starting CPU stress test for {duration} seconds...")
+
+    # This loop performs intensive hashing to max out the CPU core
+    while time.time() - start_time < duration:
+        # Generate a large string and hash it repeatedly
+        text = "stresstest" * 1000
+        hashlib.sha256(text.encode()).hexdigest()
+
+    return JsonResponse({
+        "status": "CPU Stress Complete",
+        "duration_seconds": duration,
+        "message": "If you ran this 2-3 times, your health checks likely failed!"
+    })

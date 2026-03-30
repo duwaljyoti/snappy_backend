@@ -1,0 +1,35 @@
+# =========================
+# Stage 1: Build Layer
+# =========================
+FROM python:3.9 AS builder
+
+ENV PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y \
+    build-essential libpq-dev gcc libffi-dev libjpeg-dev zlib1g-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+COPY . .
+
+# =========================
+# Stage 2: Runtime for Lambda
+# =========================
+FROM public.ecr.aws/lambda/python:3.9
+
+# Bring app + deps from builder
+COPY --from=builder /root/.local /root/.local
+COPY --from=builder /app /var/task
+ENV PATH="/root/.local/bin:${PATH}" PYTHONUNBUFFERED=1
+
+# --- AWS Lambda Web Adapter ---
+# The Lambda base image doesn't have curl, so install it first.
+RUN yum install -y curl && yum clean all \
+ && curl -L -o /opt/bootstrap \
+      https://github.com/awslabs/aws-lambda-web-adapter/releases/latest/download/aws-lambda-adapter \
+ && chmod +x /opt/bootstrap
+
+# Gunicorn + Django WSGI
+ENV AWS_LWA_ENABLE_HTTP1_1=1 PORT=8000 WEB_CONCURRENCY=1
+CMD ["bash","-lc","gunicorn --bind 0.0.0.0:$PORT snappybackend.wsgi:application"]
