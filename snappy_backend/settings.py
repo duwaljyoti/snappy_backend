@@ -196,3 +196,20 @@ CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
 # Ensure Celery uses the same timezone as your app
 CELERY_TIMEZONE = "UTC" # Or your preferred timezone
 CELERY_TASK_TRACK_STARTED = True
+
+
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'global_keyprefix': '{celery}'
+}
+
+
+# worker_enable_remote_control = False
+CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
+
+# Email
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'sandbox.smtp.mailtrap.io')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 2525))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')

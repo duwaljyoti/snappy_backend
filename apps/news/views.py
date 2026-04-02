@@ -8,7 +8,7 @@ import json
 from urllib.parse import urljoin
 import math
 from django.views.decorators.http import require_GET
-
+from apps.news.tasks import send_async_email
 BASE_URL = 'https://ekantipur.com/'  # Define the base URL globally
 
 def get_image_url_updated(news):
@@ -257,6 +257,16 @@ def get_whole_news(url):
 
 def check_heath(request):
     return JsonResponse({'working': True, 'last_update_time': datetime.now()})
+
+
+def send_test_mail(request):
+    send_async_email.delay(
+        user_email='duwaljyoti16@gmail.com',
+        subject="Welcome to RightBanker!",
+        body="We are thrilled to have you on board. Let's get started."
+    )
+
+    return HttpResponse("Signup complete! Check your email.")
 
 
 def cpu_burn(request):
