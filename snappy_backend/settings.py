@@ -190,8 +190,8 @@ CORS_ALLOW_HEADERS = [
 REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
 REDIS_PORT = os.environ.get('REDIS_PORT', '6379')
 
-CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
-CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
+# CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
+# CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'
 
 # Ensure Celery uses the same timezone as your app
 CELERY_TIMEZONE = "UTC" # Or your preferred timezone
@@ -213,3 +213,18 @@ EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 2525))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+
+# 1. Update the URLs to include the ssl_cert_reqs parameter
+CELERY_BROKER_URL = f'rediss://{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=none'
+CELERY_RESULT_BACKEND = f'rediss://{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=none'
+
+# 2. Add these dictionaries to ensure Celery's internal components
+# use the correct SSL settings as well
+import ssl
+
+CELERY_BROKER_USE_SSL = {
+    'ssl_cert_reqs': ssl.CERT_NONE
+}
+CELERY_REDIS_BACKEND_USE_SSL = {
+    'ssl_cert_reqs': ssl.CERT_NONE
+}
