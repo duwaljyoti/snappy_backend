@@ -1,5 +1,5 @@
 from urllib.parse import unquote
-
+from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 import requests
 from bs4 import BeautifulSoup
@@ -260,13 +260,20 @@ def check_heath(request):
 
 
 def send_test_mail(request):
-    send_async_email.delay(
-        user_email='duwaljyoti16@gmail.com',
-        subject="Welcome to RightBanker!",
-        body="We are thrilled to have you on board. Let's get started."
-    )
+    print("DEBUG: View reached")
+    print(f"DEBUG: Using Broker: {settings.CELERY_BROKER_URL}")
 
-    return HttpResponse("Signup complete! Check your email.")
+    try:
+        send_async_email.delay(
+            user_email='test@example.com',
+            subject='Test',
+            body='Hello'
+        )
+        print("DEBUG: Task successfully sent to Redis")
+    except Exception as e:
+        print(f"DEBUG: Error sending to Redis: {e}")
+
+    return HttpResponse("Task queued!")
 
 
 def cpu_burn(request):

@@ -46,4 +46,6 @@ COPY --from=builder --chown=snappybackend:snappybackend /app .
 USER snappybackend
 
 # Final run command (Overridden by docker-compose for worker/beat)
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8300"]
+#CMD ["python", "manage.py", "runserver", "0.0.0.0:8300"]
+# Final run command for ASGI/Daphne
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8300", "snappy_backend.asgi:application"]

@@ -29,3 +29,7 @@ urllib3==2.2.2
 celery==5.3.6
 redis==5.0.1
 flower==2.0.1  # Optional: great for monitoring tasks in production
+
+channels==4.2.0
+channels_redis==4.2.1
+daphne==4.1.2

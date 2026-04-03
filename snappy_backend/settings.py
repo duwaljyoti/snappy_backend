@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 DJANGO_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -215,8 +216,8 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
 # 1. Update the URLs to include the ssl_cert_reqs parameter
-CELERY_BROKER_URL = f'rediss://{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=none'
-CELERY_RESULT_BACKEND = f'rediss://{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=none'
+# CELERY_BROKER_URL = f'rediss://{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=none'
+# CELERY_RESULT_BACKEND = f'rediss://{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=none'
 
 # 2. Add these dictionaries to ensure Celery's internal components
 # use the correct SSL settings as well
@@ -228,3 +229,44 @@ CELERY_BROKER_USE_SSL = {
 CELERY_REDIS_BACKEND_USE_SSL = {
     'ssl_cert_reqs': ssl.CERT_NONE
 }
+
+ASGI_APPLICATION = 'snappy_backend.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [f"rediss://{REDIS_HOST}:{REDIS_PORT}/0?ssl_cert_reqs=CERT_NONE"],
+        },
+    },
+}
+
+
+# settings.py
+
+# 1. Check if we should use SSL (Defaults to False for local)
+REDIS_USE_SSL = os.environ.get('REDIS_USE_SSL', 'False').lower() == 'true'
+
+# 2. Set protocol and params based on the environment
+protocol = 'rediss' if REDIS_USE_SSL else 'redis'
+# Note: Cert requirements are only needed for the rediss:// protocol
+ssl_params = '?ssl_cert_reqs=CERT_NONE' if REDIS_USE_SSL else ''
+
+REDIS_USE_SSL = os.environ.get('REDIS_USE_SSL', 'False').lower() == 'true'
+
+if REDIS_USE_SSL:
+    # This block is for AWS ElastiCache ONLY
+    REDIS_PROTOCOL = 'rediss'
+    SSL_CERT_SETTING = '?ssl_cert_reqs=CERT_NONE'
+    CELERY_USE_SSL_DICT = {'ssl_cert_reqs': None}
+else:
+    # This block is for Local Docker ONLY
+    REDIS_PROTOCOL = 'redis'
+    SSL_CERT_SETTING = ''
+    CELERY_USE_SSL_DICT = None
+
+CELERY_BROKER_URL = f"{REDIS_PROTOCOL}://{REDIS_HOST}:{REDIS_PORT}/0{SSL_CERT_SETTING}"
+CELERY_RESULT_BACKEND = f"{REDIS_PROTOCOL}://{REDIS_HOST}:{REDIS_PORT}/0{SSL_CERT_SETTING}"
+
+CELERY_BROKER_USE_SSL = CELERY_USE_SSL_DICT
+CELERY_REDIS_BACKEND_USE_SSL = CELERY_USE_SSL_DICT
