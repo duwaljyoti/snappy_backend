@@ -2,6 +2,7 @@ version: '3.9'
 
 volumes:
   redis_data:
+  postgres_data:
 
 networks:
   snappybackend:
@@ -20,6 +21,24 @@ services:
       timeout: 3s
       retries: 5
 
+  # --- DATABASE ---
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: snappy
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - snappybackend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   # --- APPLICATION LAYER ---
   api:
     build: .
@@ -27,11 +46,14 @@ services:
     ports:
       - "8100:8300"
     volumes:
-      - .:/snappybackend
+      - .:/home/snappybackend/app  # FIX THIS LINE
     env_file: .env
-    command: python manage.py runserver 0.0.0.0:8300
+      # Switch to running daphne directly for a cleaner ASGI setup
+    command: daphne -b 0.0.0.0 -p 8300 snappy_backend.asgi:application
     depends_on:
       redis:
+        condition: service_healthy
+      db:
         condition: service_healthy
     networks:
       - snappybackend
