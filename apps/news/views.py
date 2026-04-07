@@ -260,6 +260,7 @@ def get_whole_news(url):
 def check_health(request):
     data = {
         'working': True,
+        'something': 'something',
         'last_pushed_at': os.environ.get('LAST_DEPLOYED_AT', 'Unknown'),
         'commit_version': os.environ.get('GIT_COMMIT_SHA', 'Unknown'),
     }
