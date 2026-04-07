@@ -2,7 +2,7 @@ name: Deploy to Amazon ECS
 
 on:
   push:
-    branches: [ "main" ] # Triggers on push to your main branch
+    branches: [ "main" ]
 
 env:
   ECR_REPOSITORY: jyoti-duwal-q3-goal/snappy_api
@@ -43,7 +43,7 @@ jobs:
       # --- DEPLOY API ---
       - name: Fill in the new image ID and deployment metadata for API
         id: task-def-api
-        uses: aws-actions/amazon-ecs-render-task-definition@v2 # Upgraded to v2
+        uses: aws-actions/amazon-ecs-render-task-definition@v1 # REVERTED TO v1
         with:
           task-definition: ${{ env.API_TASK_DEF }}
           container-name: jyoti-test-container
@@ -53,7 +53,7 @@ jobs:
             GIT_COMMIT_SHA=${{ github.sha }}
 
       - name: Deploy API to Amazon ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2 # Upgraded to v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2 # KEPT AT v2
         with:
           task-definition: ${{ steps.task-def-api.outputs.task-definition }}
           service: ${{ env.API_SERVICE }}
@@ -63,7 +63,7 @@ jobs:
       # --- DEPLOY WORKER ---
       - name: Fill in the new image ID and deployment metadata for Worker
         id: task-def-worker
-        uses: aws-actions/amazon-ecs-render-task-definition@v2 # Upgraded to v2
+        uses: aws-actions/amazon-ecs-render-task-definition@v1 # REVERTED TO v1
         with:
           task-definition: ${{ env.WORKER_TASK_DEF }}
           container-name: jyoti_test_worker_container
@@ -73,7 +73,7 @@ jobs:
             GIT_COMMIT_SHA=${{ github.sha }}
 
       - name: Deploy Worker to Amazon ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2 # Upgraded to v2
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2 # KEPT AT v2
         with:
           task-definition: ${{ steps.task-def-worker.outputs.task-definition }}
           service: ${{ env.WORKER_SERVICE }}
