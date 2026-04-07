@@ -7,8 +7,8 @@ on:
 env:
   ECR_REPOSITORY: jyoti-duwal-q3-goal/snappy_api
   ECS_CLUSTER: jyoti-test-cluster
-  API_SERVICE: snappy-api-service
-  WORKER_SERVICE: snappy-worker-service
+  API_SERVICE: jyoti-test-task-definition-v2-service-hef30t8b
+  WORKER_SERVICE: jyoti_test_worker_task_definition-service-jtx3oq9f
   API_TASK_DEF: .aws/api-task-def.json
   WORKER_TASK_DEF: .aws/worker-task-def.json
 
