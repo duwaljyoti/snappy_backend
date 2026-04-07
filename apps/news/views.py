@@ -1,3 +1,5 @@
+import os
+
 from urllib.parse import unquote
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse
@@ -255,8 +257,13 @@ def get_whole_news(url):
         return ''
 
 
-def check_heath(request):
-    return JsonResponse({'working': True, 'last_update_time': datetime.now()})
+def check_health(request):
+    data = {
+        'working': True,
+        'last_pushed_at': os.environ.get('LAST_DEPLOYED_AT', 'Unknown'),
+        'commit_version': os.environ.get('GIT_COMMIT_SHA', 'Unknown'),
+    }
+    return JsonResponse(data)
 
 
 def send_test_mail(request):

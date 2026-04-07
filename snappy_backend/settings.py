@@ -3,6 +3,7 @@ Django settings for snappy_backend project.
 """
 
 import os
+import ssl
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -16,7 +17,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-3o5$w&e2b&-9ob66%vb^7
 # Set to False in your ECS Environment Variables
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['*'] # Update with your ELB DNS or domain in production
+ALLOWED_HOSTS = ['*']
 
 
 # ==============================================================================
@@ -24,7 +25,7 @@ ALLOWED_HOSTS = ['*'] # Update with your ELB DNS or domain in production
 # ==============================================================================
 
 DJANGO_APPS = [
-    'daphne', # Daphne must be at the top
+    'daphne', # Daphne must be at the top for ASGI
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,7 +47,7 @@ LOCAL_APPS = [
     "apps.testapp",
     "apps.user",
     "apps.portal",
-    "apps.news", # Added based on your NewsConsumer/routing
+    "apps.news",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -85,10 +86,9 @@ ASGI_APPLICATION = 'snappy_backend.asgi.application'
 
 
 # ==============================================================================
-# DATABASE
+# DATABASE (Postgres for Cloud, SQLite for Local)
 # ==============================================================================
 
-# Switching to Environment variables for DB if available, else SQLite
 DB_NAME = os.getenv('DB_NAME')
 if DB_NAME:
     DATABASES = {
@@ -111,7 +111,7 @@ else:
 
 
 # ==============================================================================
-# REDIS / CELERY / CHANNELS (Dynamic Local vs Cloud)
+# REDIS / CELERY / CHANNELS (Fixed for AWS ElastiCache)
 # ==============================================================================
 
 REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
@@ -121,12 +121,14 @@ REDIS_PORT = os.environ.get('REDIS_PORT', '6379')
 REDIS_USE_SSL = os.environ.get('REDIS_USE_SSL', 'False').lower() == 'true'
 
 if REDIS_USE_SSL:
-    # AWS ElastiCache Path
+    # AWS ElastiCache Configuration
     REDIS_PROTOCOL = 'rediss'
-    SSL_CERT_SETTING = '?ssl_cert_reqs=CERT_NONE'
-    CELERY_USE_SSL_DICT = {'ssl_cert_reqs': None}
+    # Important: ElastiCache requires lowercase 'none' in the URL
+    SSL_CERT_SETTING = '?ssl_cert_reqs=none'
+    # Celery dictionaries require the actual SSL constant
+    CELERY_USE_SSL_DICT = {'ssl_cert_reqs': ssl.CERT_NONE}
 else:
-    # Local Docker Path
+    # Local Docker Configuration
     REDIS_PROTOCOL = 'redis'
     SSL_CERT_SETTING = ''
     CELERY_USE_SSL_DICT = None
@@ -134,7 +136,7 @@ else:
 # Single URL used by both Celery and Channels
 REDIS_URL = f"{REDIS_PROTOCOL}://{REDIS_HOST}:{REDIS_PORT}/0{SSL_CERT_SETTING}"
 
-# Celery Configuration
+# --- Celery Configuration ---
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_BROKER_USE_SSL = CELERY_USE_SSL_DICT
@@ -144,10 +146,11 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_WORKER_ENABLE_REMOTE_CONTROL = False
 CELERY_BROKER_TRANSPORT_OPTIONS = {'global_keyprefix': '{celery}'}
 
-# Channel Layers (WebSockets)
+# --- Channel Layers (WebSockets) ---
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'BACKEND': 'channels_redis.pubsub.RedisPubSubChannelLayer',
         'CONFIG': {
             "hosts": [REDIS_URL],
         },

@@ -2,14 +2,14 @@ name: Deploy to Amazon ECS
 
 on:
   push:
-    branches: [ "main" ] # Or whatever your production branch is
+    branches: [ "main" ]
 
 env:
-  ECR_REPOSITORY: snappy-backend-repo # Replace with your ECR repo name
-  ECS_CLUSTER: jyoti-test-cluster      # Replace with your Cluster name
-  API_SERVICE: snappy-api-service      # Replace with your API service name
-  WORKER_SERVICE: snappy-worker-service # Replace with your Worker service name
-  API_TASK_DEF: .aws/api-task-def.json  # We will create these in Step 3
+  ECR_REPOSITORY: snappy-backend-repo
+  ECS_CLUSTER: jyoti-test-cluster
+  API_SERVICE: snappy-api-service
+  WORKER_SERVICE: snappy-worker-service
+  API_TASK_DEF: .aws/api-task-def.json
   WORKER_TASK_DEF: .aws/worker-task-def.json
 
 jobs:
@@ -24,7 +24,8 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          # FIX: Changed from env.AWS_REGION to secrets.AWS_REGION
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -41,13 +42,17 @@ jobs:
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       # --- UPDATE API ---
-      - name: Fill in the new image ID in the API task definition
+      - name: Fill in the new image ID and deployment metadata for API
         id: task-def-api
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: ${{ env.API_TASK_DEF }}
-          container-name: jyoti-test-container # Must match your container name in AWS
+          container-name: jyoti-test-container
           image: ${{ steps.build-image.outputs.image }}
+          # NEW: Injecting deployment metadata
+          environment-variables: |
+            LAST_DEPLOYED_AT=${{ github.event.head_commit.timestamp }}
+            GIT_COMMIT_SHA=${{ github.sha }}
 
       - name: Deploy API to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
@@ -58,13 +63,17 @@ jobs:
           wait-for-service-stability: true
 
       # --- UPDATE WORKER ---
-      - name: Fill in the new image ID in the Worker task definition
+      - name: Fill in the new image ID and deployment metadata for Worker
         id: task-def-worker
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: ${{ env.WORKER_TASK_DEF }}
-          container-name: jyoti_test_worker_container # Must match your worker container name
+          container-name: jyoti_test_worker_container
           image: ${{ steps.build-image.outputs.image }}
+          # NEW: Injecting deployment metadata
+          environment-variables: |
+            LAST_DEPLOYED_AT=${{ github.event.head_commit.timestamp }}
+            GIT_COMMIT_SHA=${{ github.sha }}
 
       - name: Deploy Worker to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
