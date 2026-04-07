@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
 
 env:
-  ECR_REPOSITORY: snappy-backend-repo
+  ECR_REPOSITORY: jyoti-duwal-q3-goal/snappy_api
   ECS_CLUSTER: jyoti-test-cluster
   API_SERVICE: snappy-api-service
   WORKER_SERVICE: snappy-worker-service
