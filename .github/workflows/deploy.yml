@@ -1,24 +1,75 @@
-name: Deploy on Push to Main
+name: Deploy to Amazon ECS
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ] # Or whatever your production branch is
+
+env:
+  ECR_REPOSITORY: snappy-backend-repo # Replace with your ECR repo name
+  ECS_CLUSTER: jyoti-test-cluster      # Replace with your Cluster name
+  API_SERVICE: snappy-api-service      # Replace with your API service name
+  WORKER_SERVICE: snappy-worker-service # Replace with your Worker service name
+  API_TASK_DEF: .aws/api-task-def.json  # We will create these in Step 3
+  WORKER_TASK_DEF: .aws/worker-task-def.json
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Deploy to EC2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            cd /var/www/snappy_backend/
-            python manage.py migrate
-            sudo git pull origin main
-          EOF
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # --- UPDATE API ---
+      - name: Fill in the new image ID in the API task definition
+        id: task-def-api
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.API_TASK_DEF }}
+          container-name: jyoti-test-container # Must match your container name in AWS
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy API to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-api.outputs.task-definition }}
+          service: ${{ env.API_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      # --- UPDATE WORKER ---
+      - name: Fill in the new image ID in the Worker task definition
+        id: task-def-worker
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.WORKER_TASK_DEF }}
+          container-name: jyoti_test_worker_container # Must match your worker container name
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Worker to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def-worker.outputs.task-definition }}
+          service: ${{ env.WORKER_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
