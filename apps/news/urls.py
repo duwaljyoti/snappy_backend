@@ -6,6 +6,7 @@ urlpatterns = [
     path('check-health/', views.check_health, name='check_health'),
     path('send-test-email/', views.send_test_mail, name='send_test_email'),
     path('burn-cpu/', views.cpu_burn, name='burn_cpu'),
+    path('call-engine/', views.call_engine, name='call_engine'),
     path('get_news_image/', views.get_image_urls, name='get_news_image'),
     path('stress/', views.stress_test_view, name='stress')
 ]

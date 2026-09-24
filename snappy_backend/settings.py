@@ -159,6 +159,16 @@ CHANNEL_LAYERS = {
 
 
 # ==============================================================================
+# ENGINE (snappy_engine, reached through ECS Service Connect)
+# ==============================================================================
+
+# On ECS: http://engine.rb.local:8000 (the Service Connect client alias)
+ENGINE_URL = os.environ.get('ENGINE_URL', 'http://localhost:8000').rstrip('/')
+# Must stay above the engine's delay, or every call times out
+ENGINE_TIMEOUT_SECONDS = float(os.environ.get('ENGINE_TIMEOUT_SECONDS', '30'))
+
+
+# ==============================================================================
 # EMAIL
 # ==============================================================================
 

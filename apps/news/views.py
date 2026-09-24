@@ -1,4 +1,6 @@
 import os
+import socket
+import time
 
 from urllib.parse import unquote
 from django.conf import settings
@@ -265,6 +267,42 @@ def check_health(request):
         'commit_version': os.environ.get('GIT_COMMIT_SHA', 'Unknown'),
     }
     return JsonResponse(data)
+
+
+@require_GET
+def call_engine(request):
+    """
+    Dummy call to the engine. ?delay=<seconds> is passed through, otherwise the
+    engine uses its own DELAY_SECONDS.
+    """
+    params = {}
+    if 'delay' in request.GET:
+        params['delay'] = request.GET['delay']
+
+    t0 = time.perf_counter()
+    try:
+        response = requests.get(f"{settings.ENGINE_URL}/", params=params, timeout=settings.ENGINE_TIMEOUT_SECONDS)
+    except requests.RequestException as e:
+        return JsonResponse({
+            'ok': False,
+            'engine_url': settings.ENGINE_URL,
+            'error': f"{type(e).__name__}: {e}",
+            'elapsed_seconds': round(time.perf_counter() - t0, 3),
+        }, status=502)
+
+    try:
+        engine_body = response.json()
+    except ValueError:
+        engine_body = response.text
+
+    return JsonResponse({
+        'ok': response.ok,
+        'engine_url': settings.ENGINE_URL,
+        'engine_status': response.status_code,
+        'engine': engine_body,
+        'backend_host': socket.gethostname(),
+        'elapsed_seconds': round(time.perf_counter() - t0, 3),
+    }, status=200 if response.ok else 502)
 
 
 def send_test_mail(request):
