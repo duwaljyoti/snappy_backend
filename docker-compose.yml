@@ -39,6 +39,16 @@ services:
       timeout: 3s
       retries: 5
 
+  # --- ENGINE (snappy_engine; on ECS it's reached through Service Connect) ---
+  # Host port 8200 because 8000 is often taken locally
+  engine:
+    build: ../snappy_engine
+    restart: always
+    ports:
+      - "8200:8000"
+    networks:
+      - snappybackend
+
   # --- APPLICATION LAYER ---
   api:
     build: .
@@ -48,6 +58,8 @@ services:
     volumes:
       - .:/home/snappybackend/app  # FIX THIS LINE
     env_file: .env
+    environment:
+      ENGINE_URL: http://engine:8000
       # Switch to running daphne directly for a cleaner ASGI setup
     command: daphne -b 0.0.0.0 -p 8300 snappy_backend.asgi:application
     depends_on:
