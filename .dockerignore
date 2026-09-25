@@ -1,0 +1,18 @@
+# Secrets and local state: never bake these into the image
+.env
+.env.*
+.aws
+db.sqlite3
+
+# Tooling and VCS
+.git
+.github
+.idea
+__pycache__
+*.pyc
+
+# Deployment files the container doesn't need
+infra
+buildspec.yml
+docker-compose*.yml
+Dockerfile*
