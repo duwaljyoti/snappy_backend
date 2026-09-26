@@ -11,7 +11,9 @@ from datetime import datetime
 import json
 from urllib.parse import urljoin
 import math
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
+from apps.news.models import LoadTestRecord
 from apps.news.tasks import send_async_email
 BASE_URL = 'https://ekantipur.com/'  # Define the base URL globally
 
@@ -303,6 +305,82 @@ def call_engine(request):
         'backend_host': socket.gethostname(),
         'elapsed_seconds': round(time.perf_counter() - t0, 3),
     }, status=200 if response.ok else 502)
+
+
+def _int_param(params, name, default, maximum):
+    """Read a positive integer query/form parameter, clamped to 1..maximum."""
+    try:
+        value = int(params.get(name, default))
+    except (TypeError, ValueError):
+        value = default
+    return max(1, min(value, maximum))
+
+
+@csrf_exempt
+@require_POST
+def db_write(request):
+    """
+    Inserts ?count=<n> rows (default 1, max 100) in a single bulk insert.
+    CSRF-exempt so load-testing tools can call it without a token.
+    """
+    count = _int_param(request.GET, 'count', 1, 100)
+    hostname = socket.gethostname()
+
+    t0 = time.perf_counter()
+    LoadTestRecord.objects.bulk_create(
+        LoadTestRecord(name=f"loadtest-{hostname}", payload="x" * 200) for _ in range(count)
+    )
+
+    return JsonResponse({
+        'ok': True,
+        'rows_written': count,
+        'backend_host': hostname,
+        'elapsed_seconds': round(time.perf_counter() - t0, 3),
+    })
+
+
+@require_GET
+def db_read(request):
+    """Returns the latest ?limit=<n> rows (default 20, max 200) and the total row count."""
+    limit = _int_param(request.GET, 'limit', 20, 200)
+
+    t0 = time.perf_counter()
+    rows = list(
+        LoadTestRecord.objects.order_by('-created_at').values('id', 'name', 'created_at')[:limit]
+    )
+    total = LoadTestRecord.objects.count()
+
+    return JsonResponse({
+        'ok': True,
+        'total_rows': total,
+        'returned': len(rows),
+        'rows': rows,
+        'backend_host': socket.gethostname(),
+        'elapsed_seconds': round(time.perf_counter() - t0, 3),
+    })
+
+
+@require_GET
+def db_queries(request):
+    """
+    Runs ?queries=<n> small queries one after another (default 10, max 100), like
+    a page that makes many ORM calls. per_query_ms is roughly the round trip to
+    the database, so it shows how much the database's distance costs.
+    """
+    queries = _int_param(request.GET, 'queries', 10, 100)
+
+    t0 = time.perf_counter()
+    for _ in range(queries):
+        LoadTestRecord.objects.order_by('-id').values('id').first()
+    elapsed = time.perf_counter() - t0
+
+    return JsonResponse({
+        'ok': True,
+        'queries': queries,
+        'per_query_ms': round(elapsed / queries * 1000, 2),
+        'backend_host': socket.gethostname(),
+        'elapsed_seconds': round(elapsed, 3),
+    })
 
 
 def send_test_mail(request):
