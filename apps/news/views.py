@@ -13,7 +13,11 @@ from urllib.parse import urljoin
 import math
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 from apps.news.models import LoadTestRecord
+from apps.news.serializer import SendEmailSerializer
 from apps.news.tasks import send_async_email
 BASE_URL = 'https://ekantipur.com/'  # Define the base URL globally
 
@@ -381,6 +385,39 @@ def db_queries(request):
         'backend_host': socket.gethostname(),
         'elapsed_seconds': round(elapsed, 3),
     })
+
+
+@api_view(['POST'])
+def send_email(request):
+    """
+    Queues an email to the given address and returns straight away with 202.
+    The Celery worker picks the job up from Redis and does the actual sending.
+    """
+    serializer = SendEmailSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    email = serializer.validated_data['email']
+
+    t0 = time.perf_counter()
+    try:
+        task = send_async_email.delay(
+            user_email=email,
+            subject='Message from Snappy',
+            body=serializer.validated_data['message'],
+        )
+    except Exception as e:
+        # Redis unreachable: the job could not be queued
+        return Response({
+            'queued': False,
+            'error': f"{type(e).__name__}: {e}",
+        }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    return Response({
+        'queued': True,
+        'task_id': task.id,
+        'email': email,
+        'backend_host': socket.gethostname(),
+        'elapsed_seconds': round(time.perf_counter() - t0, 3),
+    }, status=status.HTTP_202_ACCEPTED)
 
 
 def send_test_mail(request):
